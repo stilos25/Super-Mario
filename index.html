@@ -1,0 +1,282 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Super-Mario</title>
+<meta charset="utf-8">
+<style>
+body {
+	margin: 0;
+	padding: 0;
+	background-color: #5c94fc;
+}
+</style>
+<script src="menu.js"></script>
+<script src="level1.js"></script>
+<script src="level2.js"></script> 
+<script src="//cdn.jsdelivr.net/phaser/2.6.2/phaser.min.js"></script>
+</head>
+<body>
+	<script type="text/javascript">
+		var game = new Phaser.Game(1500, 2000, Phaser.CANVAS, '' , false, false);
+
+		function preload() 
+		{
+
+			//  We need this because the assets are on github pages
+			//  Remove the next 2 lines if running locally
+
+			this.load.baseURL = 'https://stilos25.github.io/Super-Mario/';
+			this.load.crossOrigin = 'anonymous';
+
+		}	
+
+
+		var jumpsound;
+		var themesong;
+		var coinsound;
+		var goombasound;
+		var ftousound;
+		var score=0;
+		var scoretest;
+		var scorelvl1=0;
+		var lives=3;
+		var livestest;
+		var gameoversound;
+		var boxsound;
+		var bravosound;
+		var teleportSound;
+		var endsound
+		var endsound2
+
+		var plai = true;
+
+
+		game.state.add('menu', menu);
+		game.state.add('level1',level1);
+		game.state.add('level2',level2);
+		game.state.start('menu');
+
+
+		function nextoflvlOverlap(player,nextlvl)
+		{
+			themesong.stop();
+			gameovertest = game.add.bitmapText(40,70,'font', 'Princes hang tight,\nI am coming to rescue you!!!',35);
+			gameovertest.fixedToCamera = true;
+			scorelvl1=score;
+			player.body.enable=false;
+			game.time.events.add(Phaser.Timer.SECOND*3 , function() 
+			{
+				teleportSound.play();
+				game.state.start('level2');
+				player.body.enable=true;
+			});
+		}
+
+
+ 
+
+        function ghostOverlap(player, ghost) 
+        {
+			if (player.body.touching.down) 
+			{
+				ghost.animations.stop();
+				goombasound.play();
+				ghost.frame = 2;
+				ghost.body.enable = false;
+				player.body.velocity.y = -80;
+                score += 15;
+				scoretest.text = 'Score: '+score;
+				game.time.events.add(Phaser.Timer.SECOND, function() 
+				{
+					ghost.kill();
+				});
+			} 
+			else 
+			{
+                score=0;
+
+				if (game.state.current == 'level2')
+				{
+					score = scorelvl1; 
+				}
+
+				themesong.stop();
+				player.frame = 6;
+				player.body.enable = false;
+				player.animations.stop();
+
+
+				if(lives>1)
+				{
+					endsound.play();
+					game.time.events.add(Phaser.Timer.SECOND * 3, function() 
+					{
+						lives-= 1;
+						alert("                  Game paused,\nBad Luck! Next time try with a lucky Charm!");
+						game.state.restart();
+					});	
+    			}
+    			else 
+    			{
+					gameoversound.play();
+					gameovertest = game.add.bitmapText(150,100,'font', 'Game Over',40);
+					gameovertest.fixedToCamera = true;
+					game.time.events.add(Phaser.Timer.SECOND * 4, function() 
+					{
+						lives=3;
+						score = 0;
+						scorelvl1=0;
+						game.state.start('menu');
+					});
+				}
+			}
+		}
+		
+
+
+		function pipeOverlap(player,pipe)
+		{
+			player.body.enable=false;
+			game.time.events.add(Phaser.Timer.SECOND*0.3 , function() 
+			{
+				teleportSound.play();
+				player.body.enable=true;
+				player.reset(260,220);
+			});
+		}
+
+
+		function endlvlOverlap(player, endlvl)
+		{
+			themesong.stop();
+			teleportSound.play();
+			endsound2.play();
+
+			player.reset(2450,320);
+			plai = false;
+			player.body.velocity.x = 40;
+			player.animations.play('walkRight');
+			player.goesRight = true;
+			game.time.events.add(Phaser.Timer.SECOND*4 , function() 
+			{
+				player.body.enable = false;
+				player.animations.stop();
+			});
+			game.time.events.add(Phaser.Timer.SECOND*10 , function() 
+			{
+				endoflvltest = game.add.bitmapText(150,100,'font', 'Well Done!! Its a Trap!\nOne Cookie For You!',35);
+				endoflvltest.fixedToCamera = true;
+				game.time.events.add(Phaser.Timer.SECOND*20 , function()
+				{
+					score=0;
+					scorelvl1=0;
+					endsound2.stop();
+					player.body.enable = true;
+					plai= true;
+					lives=3;
+					game.state.start('menu');
+				});
+			});	
+		}
+
+		function coinOverlap(player, coin) 
+		{
+			score += 5;
+			scoretest.text= 'Score: '+score;
+			coin.kill();
+			coinsound.play();
+		}
+
+		function mushroombonusOverlap(player, mushroombonus)
+		{
+			mushroombonus.kill();
+			bravosound.play(); 
+			player.loadTexture('marioUP', 0);
+		}
+
+		function boxOverlap(player, box)
+		{
+			if (cursors.up.isDown & player.body.touching.down) 
+			{
+				jumpsound.play();
+				player.body.velocity.y = -190;
+				player.animations.stop();
+			}	
+			 if (player.body.touching.up & box.frame!=3) 
+			{
+				boxsound.play();
+				box.animations.stop();
+				box.frame=3;
+				bonussprite = game.make.sprite(box.x, box.y-14, 'bonussprite')
+				mushroombonus.addChild(bonussprite);			
+				bonussprite.animations.add('mushroomspawn', [7,6,5,4,3,2,1,],7,false);
+				bonussprite.animations.play('mushroomspawn');
+				game.physics.arcade.enable(bonussprite);
+			}
+		}
+
+
+
+
+		function goombaOverlap(player, goomba) 
+		{
+			if (player.body.touching.down) 
+			{
+				goombasound.play();
+				score += 7;
+				scoretest.text = 'Score: '+score;
+				goomba.animations.stop();
+				goomba.frame = 2;
+				goomba.body.enable = false;
+				player.body.velocity.y = -80;
+				game.time.events.add(Phaser.Timer.SECOND, function() 
+				{
+					goomba.kill();
+				});
+			} 
+			else 
+			{
+				score = 0;
+
+				if (game.state.current == 'level2')
+				{
+					score = scorelvl1; 
+				}
+
+				themesong.stop();
+				player.frame = 6;
+				player.body.enable = false;
+				player.animations.stop();
+
+
+				if(lives>1)
+				{
+					endsound.play();
+					game.time.events.add(Phaser.Timer.SECOND * 3, function() 
+					{
+						lives-= 1;
+						alert("                  Game paused,\nBad Luck! Next time try with a lucky Charm!");
+						game.state.restart();
+					});	
+				}
+				else
+				{
+					gameoversound.play();
+					gameovertest = game.add.bitmapText(150,100,'font', 'Game Over',40);
+					gameovertest.fixedToCamera = true;
+					game.time.events.add(Phaser.Timer.SECOND * 4, function() 
+					{
+						lives=3;
+						score = 0;
+						scorelvl1=0;
+						game.state.start('menu');
+					});
+				}
+			}
+		}
+
+
+
+	</script>
+</body>
+</html>
